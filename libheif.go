@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"image"
+	"image/gif"
 	"image/jpeg"
 	"image/png"
 	"log"
@@ -43,7 +44,7 @@ func saveAsJpeg(img image.Image, filename string, quality int) error {
 	}
 
 	// Save the JPEG data to a file
-	if err := os.WriteFile(filename, out.Bytes(), 0644); err != nil {
+	if err := os.WriteFile(filename, out.Bytes(), 0o644); err != nil {
 		return fmt.Errorf("could not save JPEG image as %s: %w", filename, err)
 	}
 
@@ -76,7 +77,40 @@ func saveAsPng(img image.Image, filename string) error {
 	}
 
 	// Save the PNG data to a file
-	if err := os.WriteFile(filename, out.Bytes(), 0644); err != nil {
+	if err := os.WriteFile(filename, out.Bytes(), 0o644); err != nil {
+		return fmt.Errorf("could not save PNG image as %s: %w", filename, err)
+	}
+
+	log.Printf("Image successfully written to %s\n", filename)
+	return nil
+}
+
+// saveAsGif encodes an image to GIF format and saves it to a file.
+//
+// Example:
+//
+//	img := image.NewRGBA(image.Rect(0, 0, 100, 100))
+//	filename := "output.gif"
+//	if err := saveAsGif(img, filename); err != nil {
+//		log.Fatal(err)
+//	}
+func saveAsGif(img image.Image, filename string) error {
+	// Validate input
+	if img == nil {
+		return fmt.Errorf("image is nil")
+	}
+	if filename == "" {
+		return fmt.Errorf("filename is empty")
+	}
+
+	// Encode the image to PNG
+	var out bytes.Buffer
+	if err := gif.Encode(&out, img, nil); err != nil {
+		return fmt.Errorf("could not encode image as PNG: %w", err)
+	}
+
+	// Save the PNG data to a file
+	if err := os.WriteFile(filename, out.Bytes(), 0o644); err != nil {
 		return fmt.Errorf("could not save PNG image as %s: %w", filename, err)
 	}
 
@@ -235,6 +269,28 @@ func HeifToJpeg(heifImagePath string, newJpegImagePath string, quality int) erro
 	}
 	// Save the image in JPEG format with the specified quality and return the result.
 	return saveAsJpeg(img, newJpegImagePath, quality)
+}
+
+// HeifToGif converts an image from HEIF format to GIF format.
+//
+// This function takes the path to the input HEIF image file and the path where
+// the output GIF image file should be saved.
+//
+// Example:
+//
+//	err := HeifToGif("input.heic", "output.gif")
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+func HeifToGif(heifImagePath string, newGifImagePath string) error {
+	// Convert the HEIF image to the internal image representation.
+	img, err := ReturnImageFromHeif(heifImagePath)
+	if err != nil {
+		// If there was an error, return it to the caller
+		return err
+	}
+	// Save the image in GIF format and return the result.
+	return saveAsGif(img, newGifImagePath)
 }
 
 // ImageToHeif converts an image from JPEG or PNG format to HEIF format.
